@@ -1,0 +1,45 @@
+[package]
+authors = ['Zikun Fan <kun@crust.network>']
+description = 'FRAME pallet verifier for call Enclave ECDSA QVL verifying service.'
+edition = '2018'
+homepage = 'https://crust.network'
+license = 'Apache-2.0'
+name = 'pallet-verifier'
+readme = 'README.md'
+repository = 'https://github.com/crustio/tee-alliance'
+version = '0.1.0'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+# external dependencies
+codec = {default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0'}
+libloading = '0.7.0'
+
+# Substrate dependencies
+frame-benchmarking = {default-features = false, optional = true, version = '3.1.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+frame-support = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+frame-system = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-runtime-interface = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-std = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+
+[dev-dependencies]
+serde = '1.0.119'
+hex = '0.4.2'
+sp-core = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-io = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+sp-runtime = {default-features = false, version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-05'}
+
+[features]
+default = ['std']
+runtime-benchmarks = ['frame-benchmarking']
+std = [
+	'codec/std',
+	'frame-support/std',
+	'frame-system/std',
+	'frame-benchmarking/std',
+	'sp-std/std',
+	'sp-runtime-interface/std',
+]
+try-runtime = ['frame-support/try-runtime']
