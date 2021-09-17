@@ -15,13 +15,13 @@ git lfs install
   ```
 
 ### Install & Start
-Run 'sudo <root_dir>/sgx/scripts/install_deps.sh' to install dependencies
-Run 'sudo <root_dir>/sgx/scripts/install.sh' to install executable binary:dcap-service to /opt/crust/tools/bin
-Run '/opt/crust/tools/bin/dcap-service' to start dcap-service, default port is 'localhost:1234', you can use '-t' to indicate host while '-p' is used to specify a port.
+1. Run 'sudo <root_dir>/sgx/scripts/install_deps.sh' to install dependencies
+1. Run 'sudo <root_dir>/sgx/scripts/install.sh' to install executable binary:dcap-service to /opt/crust/tools/bin
+1. Run '/opt/crust/tools/bin/dcap-service' to start dcap-service, default port is 'localhost:1234', you can use '-t' to indicate host while '-p' is used to specify a port.
 
 ### Install & Start with docker
-Run 'sudo <root_dir>/sgx/docker/build_env.sh' to build DCAP service environment docker
-Run 'sudo <root_dir>/sgx/docker/build.sh' to build DCAP service docker, add '-g' will generate a docker-compose.yaml for you
+1. Run 'sudo <root_dir>/sgx/docker/build_env.sh' to build DCAP service environment docker
+1. Run 'sudo <root_dir>/sgx/docker/build.sh' to build DCAP service docker, add '-g' will generate a docker-compose.yaml for you
 You can create a docker-compose.yaml file like:
 ```
 version: '2.0'
@@ -35,7 +35,7 @@ services:
       PCCS_PORT: '9999'
       PCS_API_KEY: 'xxxx'
 ```
-**DCAP_ARGS** indicates DCAP service host and port
-**PCCS_PORT** indicates PCCS service port
-**PCS_API_KEY** indicates PCCS service api key
+- **DCAP_ARGS** indicates DCAP service host and port
+- **PCCS_PORT** indicates PCCS service port
+- **PCS_API_KEY** indicates PCCS service api key
 If you want to configure your own PCCS configure, you can map your PCCS configure file to docker container's PCCS configure file located at '/etc/sgx_default_qcnl.conf'. Then, run 'sudo docker-compose up dcap-service' to start DCAP service.
