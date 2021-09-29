@@ -45,7 +45,7 @@
 use frame_system::{
 	self as system,
 	ensure_signed,
-	ensure_none,
+	ensure_none, ensure_root,
 	offchain::{
 		AppCrypto, CreateSignedTransaction, SendUnsignedTransaction,
 		SignedPayload, SigningTypes, Signer,
@@ -142,6 +142,11 @@ pub struct RegisterPayload<Public, AccountId, BlockNumber> {
 	public: Public,
 }
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct WrapPublic<Public> {
+	public: Public
+}
+
 impl<T: SigningTypes> SignedPayload<T> for RegisterPayload<T::Public, T::AccountId, T::BlockNumber> {
 	fn public(&self) -> T::Public {
 		self.public.clone()
@@ -152,6 +157,7 @@ decl_storage! {
 	trait Store for Module<T: Config> as Verifier {
 		WaitingQueue get(fn waiting_queue): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AccountId => (T::AccountId, Vec<u8>);
 		VerificationResults get(fn verification_results): map hasher(twox_64_concat) T::AccountId => Vec<RegisterPayload<T::Public, T::AccountId, T::BlockNumber>>;
+		PublicKeys get(fn public_keys): Vec<WrapPublic<T::Public>>;
 	}
 }
 
@@ -164,7 +170,8 @@ decl_event!(
 
 decl_error! {
 	pub enum Error for Module<T: Config>{
-		InvalidSignature
+		InvalidSignature,
+		InvalidPublic
 	}
 }
 
@@ -206,11 +213,32 @@ decl_module! {
 		) -> DispatchResult {
 			// This ensures that the function can only be called via unsigned transaction.
 			ensure_none(origin)?;
+			let public_keys = Self::public_keys();
+			let wrap_pubkey = WrapPublic {
+				public: register_payload.public.clone()
+			};
+			ensure!(public_keys.contains(&wrap_pubkey), Error::<T>::InvalidPublic);
 			let signature_valid = SignedPayload::<T>::verify::<T::AuthorityId>(&register_payload, signature.clone());
 			ensure!(signature_valid, Error::<T>::InvalidSignature);
 			<VerificationResults<T>>::mutate(register_payload.who.clone(), |results| {
 				results.push(register_payload);
 			});
+			Ok(())
+		}
+
+		#[weight = 1000]
+		pub fn register_new_pubkey(
+			origin,
+			pubkey: T::Public,
+		) -> DispatchResult {
+			// This ensures that the function can only be called via unsigned transaction.
+			let _ = ensure_root(origin)?;
+			let mut public_keys = Self::public_keys();
+			let wrap_pubkey = WrapPublic {
+				public: pubkey
+			};
+			public_keys.push(wrap_pubkey);
+			<PublicKeys<T>>::put(public_keys);
 			Ok(())
 		}
 
@@ -272,6 +300,7 @@ impl<T: Config> Module<T> {
 				public: account.public.clone()
 			},
 			|payload, signature| {
+				log::info!("public: {:?}", payload.public.clone());
 				Call::submit_result_unsigned_with_signed_payload(payload, signature)
 			}
 		).ok_or("No local accounts accounts available.")?;
