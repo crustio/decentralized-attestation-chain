@@ -162,6 +162,8 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-09+1'
 version = '4.0.0-dev'
 
+[dependencies.hex-literal]
+version = "0.3.1"
 
 # local runtime
 [dependencies.tee-alliance-runtime]

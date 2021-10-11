@@ -92,8 +92,8 @@ pub mod opaque {
 //   https://substrate.dev/docs/en/knowledgebase/runtime/upgrades#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("node-template"),
-	impl_name: create_runtime_str!("node-template"),
+	spec_name: create_runtime_str!("tee-auth"),
+	impl_name: create_runtime_str!("tee-auth"),
 	authoring_version: 1,
 	// The version of the runtime specification. A full node will not attempt to use its native
 	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -139,7 +139,7 @@ parameter_types! {
 		::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
 		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
-	pub const SS58Prefix: u8 = 42;
+	pub const SS58Prefix: u8 = 66;
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -234,7 +234,7 @@ impl pallet_authorship::Config for Runtime {
 
 parameter_types! {
 	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
-	pub const Period: u32 = 3 * MINUTES;
+	pub const Period: u32 = 1 * HOURS;
 	pub const Offset: u32 = 0;
 	pub const MaxAuthorities: u32 = 100_000;
 }
