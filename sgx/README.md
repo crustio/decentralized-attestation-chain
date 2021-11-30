@@ -30,11 +30,11 @@ This DCAP(Data Center Attestation Primitives) service is used to verify Crust sW
        network_mode: host
        container_name: dcap-service
        environment:
-         DCAP_ARGS: '-t 0.0.0.0 -p 1234'
+         DCAP_ARGS: '-t localhost -p 17777'
          PCCS_PORT: '9999'
          PCS_API_KEY: '5e0d868dea9c450a886ce6c46913643e'
    ```
-- **DCAP_ARGS** indicates DCAP service host and port
+- **DCAP_ARGS** indicates DCAP service host and port. It must be localhost:17777 right now.
 - **PCCS_PORT** indicates PCCS service port
 - **PCS_API_KEY** indicates PCCS service api key
 
