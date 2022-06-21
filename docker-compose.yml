@@ -1,17 +1,10 @@
-version: "3.2"
-
+version: '2.0'
 services:
-  dev:
-    container_name: node-verifier
-    image: paritytech/ci-linux:974ba3ac-20201006
-    working_dir: /var/www/node-verifier
-    ports:
-      - "9944:9944"
+  dcap-service:
+    image: 'crustio/dcap-service:1.0.0'
+    network_mode: host
+    container_name: dcap-service
     environment:
-      - CARGO_HOME=/var/www/node-verifier/.cargo
-    volumes:
-      - .:/var/www/node-verifier
-      - type: bind
-        source: ./.local
-        target: /root/.local
-    command: bash -c "cargo build --release && ./target/release/node-verifier --dev --ws-external"
+      DCAP_ARGS: '-t localhost -p 17777'
+      PCCS_PORT: '9999'
+      PCS_API_KEY: '5e0d868dea9c450a886ce6c46913643e'
