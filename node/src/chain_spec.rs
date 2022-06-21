@@ -107,15 +107,20 @@ pub fn mainnet_staging_config() -> Result<ChainSpec, String> {
 				wasm_binary,
 				// Initial PoA authorities
 				vec![(
-					hex!["702ef850661d25330c0b41da767ade0aa0d7d82ea36f7d5cbb5411ff9daa8952"].into(),
-					hex!["702ef850661d25330c0b41da767ade0aa0d7d82ea36f7d5cbb5411ff9daa8952"].unchecked_into(),
-					hex!["289d6d8349986f343f572ad2b0251c9dcae17fd9e429adb46ff3c886c28e7584"].unchecked_into(),
+					hex!["2ec91af63632573a5b051376cdeb79730261e696117e68c67aa298d519f0c77c"].into(),
+					hex!["2ec91af63632573a5b051376cdeb79730261e696117e68c67aa298d519f0c77c"].unchecked_into(),
+					hex!["acef7dc9bfb3d626b6e476b289fedfdd55cb0402d7a6704d074e2f9eea426b34"].unchecked_into(),
+				),
+				(
+					hex!["328846691dd2401b2a62b123daea0e6f626cb4919dc560797645d26e3273a57a"].into(),
+					hex!["328846691dd2401b2a62b123daea0e6f626cb4919dc560797645d26e3273a57a"].unchecked_into(),
+					hex!["575c8d1e28ca68a7835dff4183e0821cad6292ffbb18be8c55ae93e4aded3a8e"].unchecked_into(),
 				)],
 				// Sudo account
-				hex!["702ef850661d25330c0b41da767ade0aa0d7d82ea36f7d5cbb5411ff9daa8952"].into(),
+				hex!["2ec91af63632573a5b051376cdeb79730261e696117e68c67aa298d519f0c77c"].into(),
 				// Pre-funded accounts
 				vec![
-					hex!["702ef850661d25330c0b41da767ade0aa0d7d82ea36f7d5cbb5411ff9daa8952"].into()
+					hex!["2ec91af63632573a5b051376cdeb79730261e696117e68c67aa298d519f0c77c"].into()
 				],
 				true,
 			)
