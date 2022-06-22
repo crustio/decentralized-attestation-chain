@@ -39,3 +39,8 @@ This DCAP(Data Center Attestation Primitives) service is used to verify Crust sW
 - **PCS_API_KEY** indicates PCCS service api key
 
 If you want to configure your own PCCS configure, you can map your PCCS configure file to docker container's PCCS configure file located at '/etc/sgx_default_qcnl.conf'. Then, run 'sudo docker-compose up dcap-service' to start DCAP service.
+
+## Solution
+Download these two package and put them under the resources repo
+https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1g.tar.gz
+https://download.01.org/intel-sgx/sgx-linux/2.11/distro/ubuntu18.04-server/sgx_linux_x64_sdk_2.11.100.2.bin

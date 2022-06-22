@@ -395,7 +395,8 @@ impl<T: Config> Module<T> {
 
 	fn validate_transaction_parameters(
 		block_number: &T::BlockNumber,
-		who: &T::AccountId
+		who: &T::AccountId,
+		sig: &T::Signature
 	) -> TransactionValidity {
 		// Now let's check if the transaction has any chance to succeed.
 		if !<WaitingQueue<T>>::contains_key(block_number, who) {
@@ -424,7 +425,7 @@ impl<T: Config> Module<T> {
 			// get to the transaction pool and will end up in the block.
 			// We can still have multiple transactions compete for the same "spot",
 			// and the one with higher priority will replace other one in the pool.
-			.and_provides(who)
+			.and_provides(sig)
 			// The transaction is only valid for next 5 blocks. After that it's
 			// going to be revalidated by the pool.
 			.longevity(10)
@@ -472,7 +473,7 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
 			if !signature_valid {
 				return InvalidTransaction::BadProof.into();
 			}
-			Self::validate_transaction_parameters(&payload.block_number, &payload.who)
+			Self::validate_transaction_parameters(&payload.block_number, &payload.who, &signature)
 		} else {
 			InvalidTransaction::Call.into()
 		}

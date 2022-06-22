@@ -1,0 +1,35 @@
+version: '3'
+services:
+  tee-auth-chain:
+    image: crustio/tee-alliance:0.1.0
+    network_mode: host
+    restart: always
+    command:
+      - "./crust"
+      - --base-path
+      - /opt/crust-data
+      - --chain
+      - mainnet
+      - --name
+      - 🐶  AppWacther
+      - --port
+      - "33333"
+      - --ws-port
+      - "33334"
+      - --rpc-port
+      - "33335"
+      - --rpc-external
+      - --ws-external
+      - --rpc-cors
+      - all
+      - --validator
+      - --ws-max-connections
+      - "50000"
+      - '--wasm-execution'
+      - compiled
+      - --execution
+      - "WASM"
+      - --rpc-methods
+      - "unsafe"
+    volumes:
+      - ./crust-data:/opt/crust-data
