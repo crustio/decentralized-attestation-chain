@@ -2,6 +2,7 @@
   "name": "Tee Mainnet",
   "id": "tee-auth-chain",
   "chainType": "Live",
+  "bootNodes": [],
   "telemetryEndpoints": null,
   "protocolId": "tee",
   "properties": {"ss58Format": 66, "tokenDecimals": 12, "tokenSymbol": "tee"},
