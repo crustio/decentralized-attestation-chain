@@ -10,3 +10,8 @@ In general, there are the following six steps to be a validator.
 ## Optional
 5. Generate new session key and register it. https://substrate.dev/docs/en/knowledgebase/learn-substrate/session-keys#generation-and-use
 6. Register yourself as a aura validator through collatorSelection.registerAsCandidate
+
+
+# Notes
+Running it in the linux env
+cargo update -p syn --precise 1.0.82

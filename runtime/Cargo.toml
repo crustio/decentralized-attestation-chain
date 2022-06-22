@@ -111,6 +111,12 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-09+1'
 version = '4.0.0-dev'
 
+[dependencies.pallet-scheduler]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-09+1'
+version = '4.0.0-dev'
+
 [dependencies.sp-api]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
@@ -229,6 +235,7 @@ std = [
     "pallet-verifier/std",
     "pallet-authorship/std",
 	"pallet-session/std",
+    "pallet-scheduler/std",
     'sp-api/std',
 	'pallet-verifier/std',
     'sp-block-builder/std',

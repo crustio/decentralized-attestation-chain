@@ -21,8 +21,8 @@ function installAPP()
     mkdir -p $crusttoolsdir/bin
     cp $app_name $crusttoolsdir/bin
     # Configure PCCS
-    sed -i "/PCCS_URL/ c PCCS_URL=https://localhost:$pccs_port/sgx/certification/v3/" /etc/sgx_default_qcnl.conf
-    sed -i '/USE_SECURE_CERT/ c USE_SECURE_CERT=FALSE' /etc/sgx_default_qcnl.conf
+    sed -i "/pccs_url/ c \ \ \"pccs_url\": \"https://localhost:$pccs_port/sgx/certification/v3/\"," /etc/sgx_default_qcnl.conf
+    sed -i '/use_secure_cert/ c \ \ "use_secure_cert": false,' /etc/sgx_default_qcnl.conf
 }
 
 function success_exit()
