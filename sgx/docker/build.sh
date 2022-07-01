@@ -38,7 +38,7 @@ scriptsdir=$instdir/scripts
 
 . $scriptsdir/utils.sh
 
-VER=$(cat VERSION | head -n 1)
+VER=$(cat $instdir/VERSION | head -n 1)
 IMAGEID="crustio/dcap-service:$VER"
 
 echo "building dcap service runner image $IMAGEID"

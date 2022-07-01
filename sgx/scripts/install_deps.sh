@@ -55,12 +55,21 @@ function installOPENSSL()
     fi
     verbose ERROR "no" t
 
+    # Download openssl
+    if [ ! -s $rsrcdir/$opensslpkg ]; then
+        wget -P $rsrcdir $openssl_url
+        if [ $? -ne 0 ]; then
+            verbose ERROR "Download openssl from $openssl_url failed!"
+            exit 1
+        fi
+    fi
+
     # Install openssl
     > $SYNCFILE
     setTimeWait "$(verbose INFO "Installing openssl..." h)" $SYNCFILE &
     toKillPID[${#toKillPID[*]}]=$!
-    local openssl_pkg_name=$(tar tzf $openssl_file | sed -e 's@/.*@@'  | uniq)
-    tar -xzf $openssl_file -C $tmpdir
+    local openssl_pkg_name=$(tar tzf $rsrcdir/$opensslpkg | sed -e 's@/.*@@'  | uniq)
+    tar -xzf $rsrcdir/$opensslpkg -C $tmpdir
     cd $tmpdir/$openssl_pkg_name
     ./config --prefix=$crusttoolsdir/openssl &>/dev/null
     make -j8 &>>$ERRFILE
@@ -82,6 +91,16 @@ function installSGXSDK()
         return 0
     fi
     verbose ERROR "no" t
+
+    # Download sgx sdk
+    if [ ! -s $rsrcdir/$sdkpkg ]; then
+        wget -P $rsrcdir $sdkpkg_url
+        if [ $? -ne 0 ]; then
+            verbose ERROR "Download SGX SDK from $sdkpkg_url failed!"
+            exit 1
+        fi
+        chmod +x $rsrcdir/$sdkpkg
+    fi
 
     # Install SGX SDK
     local res=0
@@ -202,7 +221,9 @@ function success_exit()
 basedir=$(cd `dirname $0`;pwd)
 instdir=$basedir/..
 rsrcdir=$instdir/resource
-openssl_file=$rsrcdir/openssl-1.1.1g.tar.gz
+openssl_url="https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1g.tar.gz"
+sdkpkg_url="https://download.01.org/intel-sgx/sgx-linux/2.11/distro/ubuntu18.04-server/sgx_linux_x64_sdk_2.11.100.2.bin"
+opensslpkg=openssl-1.1.1g.tar.gz
 sdkpkg=sgx_linux_x64_sdk_2.11.100.2.bin
 crustdir=/opt/crust
 crusttoolsdir=$crustdir/tools
@@ -231,6 +252,7 @@ mkdir -p $tmpdir
 mkdir -p $crustdir
 mkdir -p $crusttoolsdir
 mkdir -p $crustlogdir
+mkdir -p $rsrcdir
 
 trap "success_exit" EXIT
 
