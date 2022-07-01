@@ -31,7 +31,7 @@ done
 basedir=$(cd `dirname $0`;pwd)
 instdir=$basedir/..
 
-VER=$(cat VERSION | head -n 1)
+VER=$(cat $instdir/VERSION | head -n 1)
 IMAGEID="crustio/dcap-service-env:$VER"
 echo "building $IMAGEID image"
 if [ "$PUBLISH" -eq "1" ]; then

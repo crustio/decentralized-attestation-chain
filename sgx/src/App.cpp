@@ -89,12 +89,12 @@ int main(int argc, char *argv[])
 	    uint32_t collateral_expiration_status = 1;
         uint32_t supplemental_data_size = 0;
         uint8_t *p_supplemental_data = NULL;
-        std::string identity_str;
+        std::string id;
 
-        Defer def_ret([&res, &ret_body, &identity_str](void) {
+        Defer def_ret([&res, &ret_body, &id](void) {
             int status = ret_body["status_code"].ToInt();
             if (200 == status)
-                ret_body["message"] = identity_str;
+                ret_body["message"] = id;
             res.status = status;
             std::string body = ret_body.dump();
             remove_char(body, '\\');
@@ -139,13 +139,14 @@ int main(int argc, char *argv[])
         uint8_t *p_mr_enclave = reinterpret_cast<uint8_t *>(&quote->report_body.mr_enclave);
         uint32_t identity_sz = sizeof(sgx_report_data_t) + sizeof(sgx_measurement_t) + account_id.size();
         // Get return message
-        uint8_t *p_identity = (uint8_t *)malloc(identity_sz);
-        Defer def_identity([&p_identity](void) { free(p_identity); });
-        memset(p_identity, 0, identity_sz);
-        memcpy(p_identity, p_pub_key, sizeof(sgx_report_data_t));
-        memcpy(p_identity + sizeof(sgx_report_data_t), p_mr_enclave, sizeof(sgx_measurement_t));
-        memcpy(p_identity + sizeof(sgx_report_data_t) + sizeof(sgx_measurement_t), account_id.c_str(), account_id.size());
-        identity_str = hexstring(p_identity, identity_sz);
+        json::JSON id_json;
+        id_json["pubkey"] = hexstring(p_pub_key, sizeof(sgx_report_data_t));
+        id_json["mrenclave"] = hexstring(p_mr_enclave, sizeof(sgx_measurement_t));
+        id_json["account"] = account_id;
+        id = id_json.dump();
+        remove_char(id, '\\');
+        remove_char(id, '\n');
+        remove_char(id, ' ');
         // Verify signature
         sgx_sha256_hash_t msg_hash;
         sgx_sha256_msg(p_sig_data, sig_data_sz, &msg_hash);
@@ -283,8 +284,8 @@ int main(int argc, char *argv[])
         {
         case SGX_QL_QV_RESULT_OK:
             p_log->info("App: Verification completed successfully.\n");
-            ret_body["message"] = "Verify quote successfully!";
-            ret_body["status_code"] = 500;
+            //ret_body["message"] = "Verify quote successfully!";
+            ret_body["status_code"] = 200;
             break;
         case SGX_QL_QV_RESULT_CONFIG_NEEDED:
         case SGX_QL_QV_RESULT_OUT_OF_DATE:
@@ -293,7 +294,7 @@ int main(int argc, char *argv[])
         case SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED:
             //p_log->warn("App: Verification completed with Non-terminal result: %x\n", quote_verification_result);
             p_log->info("App: Verify quote successfully in condition! Status code: %x\n", quote_verification_result);
-            ret_body["message"] = "Verify quote successfully in condition!";
+            //ret_body["message"] = "Verify quote successfully in condition!";
             ret_body["status_code"] = 200;
             break;
         case SGX_QL_QV_RESULT_INVALID_SIGNATURE:
