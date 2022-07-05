@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 	    uint32_t collateral_expiration_status = 1;
         uint32_t supplemental_data_size = 0;
         uint8_t *p_supplemental_data = NULL;
-        std::string id;
+        json::JSON id;
 
         Defer def_ret([&res, &ret_body, &id](void) {
             int status = ret_body["status_code"].ToInt();
@@ -139,14 +139,9 @@ int main(int argc, char *argv[])
         uint8_t *p_mr_enclave = reinterpret_cast<uint8_t *>(&quote->report_body.mr_enclave);
         uint32_t identity_sz = sizeof(sgx_report_data_t) + sizeof(sgx_measurement_t) + account_id.size();
         // Get return message
-        json::JSON id_json;
-        id_json["pubkey"] = hexstring(p_pub_key, sizeof(sgx_report_data_t));
-        id_json["mrenclave"] = hexstring(p_mr_enclave, sizeof(sgx_measurement_t));
-        id_json["account"] = account_id;
-        id = id_json.dump();
-        remove_char(id, '\\');
-        remove_char(id, '\n');
-        remove_char(id, ' ');
+        id["pubkey"] = hexstring(p_pub_key, sizeof(sgx_report_data_t));
+        id["mrenclave"] = hexstring(p_mr_enclave, sizeof(sgx_measurement_t));
+        id["account"] = account_id;
         // Verify signature
         sgx_sha256_hash_t msg_hash;
         sgx_sha256_msg(p_sig_data, sig_data_sz, &msg_hash);

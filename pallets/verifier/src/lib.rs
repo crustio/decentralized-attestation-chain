@@ -132,14 +132,18 @@ pub trait Config: CreateSignedTransaction<Call<Self>> {
 	type UnsignedPriority: Get<TransactionPriority>;
 }
 
-/// Payload used by this example crate to hold price
-/// data required to submit a transaction.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct RegisterPayload<Public, AccountId, BlockNumber> {
-	block_number: BlockNumber,
-	message: Vec<u8>,
+pub struct RegisterPayload<Public, AccountId> {
+	code: Vec<u8>,
 	who: AccountId, 
-	public: Public,
+	pubkey: Vec<u8>,
+	public: Public
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct RegisterPayloadWithSignature<Public, Signature, AccountId> {
+	payload: RegisterPayload<Public, AccountId>,
+	signature: Signature
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -147,7 +151,7 @@ pub struct WrapPublic<Public> {
 	public: Public
 }
 
-impl<T: SigningTypes> SignedPayload<T> for RegisterPayload<T::Public, T::AccountId, T::BlockNumber> {
+impl<T: SigningTypes> SignedPayload<T> for RegisterPayload<T::Public, T::AccountId> {
 	fn public(&self) -> T::Public {
 		self.public.clone()
 	}
@@ -156,7 +160,7 @@ impl<T: SigningTypes> SignedPayload<T> for RegisterPayload<T::Public, T::Account
 decl_storage! {
 	trait Store for Module<T: Config> as Verifier {
 		WaitingQueue get(fn waiting_queue): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AccountId => (T::AccountId, Vec<u8>);
-		VerificationResults get(fn verification_results): map hasher(twox_64_concat) T::AccountId => Vec<RegisterPayload<T::Public, T::AccountId, T::BlockNumber>>;
+		VerificationResults get(fn verification_results): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) Vec<u8> => Vec<RegisterPayloadWithSignature<T::Public, T::Signature, T::AccountId>>;
 		PublicKeys get(fn public_keys): Vec<WrapPublic<T::Public>>;
 	}
 }
@@ -208,7 +212,8 @@ decl_module! {
 		#[weight = 1000]
 		pub fn submit_result_unsigned_with_signed_payload(
 			origin,
-			register_payload: RegisterPayload<T::Public, T::AccountId, T::BlockNumber>,
+			_block_number: T::BlockNumber,
+			register_payload: RegisterPayload<T::Public, T::AccountId>,
 			signature: T::Signature,
 		) -> DispatchResult {
 			// This ensures that the function can only be called via unsigned transaction.
@@ -220,8 +225,12 @@ decl_module! {
 			ensure!(public_keys.contains(&wrap_pubkey), Error::<T>::InvalidPublic);
 			let signature_valid = SignedPayload::<T>::verify::<T::AuthorityId>(&register_payload, signature.clone());
 			ensure!(signature_valid, Error::<T>::InvalidSignature);
-			<VerificationResults<T>>::mutate(register_payload.who.clone(), |results| {
-				results.push(register_payload);
+			let register_payload_with_signature = RegisterPayloadWithSignature {
+				payload: register_payload.clone(),
+				signature: signature
+			};
+			<VerificationResults<T>>::mutate(register_payload.who.clone(), register_payload.pubkey.clone(), |results| {
+				results.push(register_payload_with_signature);
 			});
 			Ok(())
 		}
@@ -290,18 +299,20 @@ impl<T: Config> Module<T> {
 		// Make an external HTTP request to fetch the current price.
 		// Note this call will block until response is received.
 		let message = Self::resolve_evidence(evidence).map_err(|_| "Resolve evidence failed")?;
+		let who = T::AccountId::decode(&mut(message[2].as_ref())).map_err(|_| "Resolve account failed")?;
+
+		ensure!(who == applier, "account id is not same");
 
 		// -- Sign using any account
 		let (_, result) = Signer::<T, T::AuthorityId>::any_account().send_unsigned_transaction(
 			|account| RegisterPayload {
-				block_number,
-				message: message.clone(),
-				who: applier.clone(),
-				public: account.public.clone()
+				pubkey: message[0].clone(),
+				code: message[1].clone(),
+				who: who.clone(),
+				public: account.public.clone(),
 			},
 			|payload, signature| {
-				log::info!("public: {:?}", payload.public.clone());
-				Call::submit_result_unsigned_with_signed_payload(payload, signature)
+				Call::submit_result_unsigned_with_signed_payload(block_number, payload, signature)
 			}
 		).ok_or("No local accounts accounts available.")?;
 		result.map_err(|()| "Unable to submit transaction")?;
@@ -310,7 +321,7 @@ impl<T: Config> Module<T> {
 	}
 
 	/// Fetch current price and return the result in cents.
-	fn resolve_evidence(evidence: Vec<u8>) -> Result<Vec<u8>, http::Error> {
+	fn resolve_evidence(evidence: Vec<u8>) -> Result<Vec<Vec<u8>>, http::Error> {
 		// We want to keep the offchain worker execution time reasonable, so we set a hard-coded
 		// deadline to 2s to complete the external call.
 		// You can also wait idefinitely for the response, however you may still get a timeout
@@ -365,32 +376,51 @@ impl<T: Config> Module<T> {
 			}
 		}?;
 
-		log::info!("Got message: {:?}", message);
+		log::info!("Got pubkey: {:?}, mrenclave: {:?} and account: {:?}", message[0], message[1], message[2]);
 
-		Ok(message)
+		Ok(message.clone())
 	}
 
 	/// Parse the price from the given JSON string using `lite-json`.
 	///
 	/// Returns `None` when parsing failed or `Some(price in cents)` when parsing is successful.
-	fn parse_result(result_str: &str) -> Option<Vec<u8>> {
+	fn parse_result(result_str: &str) -> Option<Vec<Vec<u8>>> {
 		let val = lite_json::parse_json(result_str);
-		let rst = match val.ok()? {
+		match val.ok()? {
 			JsonValue::Object(obj) => {
 				let (_, v) = obj.into_iter()
 					.find(|(k, _)| k.iter().copied().eq("message".chars()))?;
 				match v {
-					JsonValue::String(s) => Some(s),
+					JsonValue::Object(_) => {
+						let pubkey_option = Self::parse_object(v.clone(), "pubkey");
+						let mrenclave_option = Self::parse_object(v.clone(), "mrenclave");
+						let account_option = Self::parse_object(v.clone(), "account");
+						if pubkey_option.is_some() && mrenclave_option.is_some() && account_option.is_some() {
+							return Some(vec![pubkey_option.unwrap(), mrenclave_option.unwrap(), account_option.unwrap()])
+						}
+						return None;
+					},
 					_ => return None,
 				}
 			},
 			_ => return None,
 		};
-		match rst{
-			Some(result) => Some(result.iter().map(|c| *c as u8).collect::<Vec<_>>()),
-			None => None
+	}
+
+	fn parse_object(body_value: JsonValue, keys: &str) -> Option<Vec<u8>> {
+		match body_value {
+			JsonValue::Object(obj) => {
+				let (_, v) = obj.into_iter()
+					.find(|(k, _)| k.iter().copied().eq(keys.chars()))?;
+				match v {
+					JsonValue::String(s) => {
+						return Some(s.iter().map(|c| *c as u8).collect::<Vec<_>>());
+					},
+					_ => return None,
+				}
+			}
+			_ => return None,
 		}
-		
 	}
 
 	fn validate_transaction_parameters(
@@ -467,13 +497,13 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
 	) -> TransactionValidity {
 		// Firstly let's check that we call the right function.
 		if let Call::submit_result_unsigned_with_signed_payload(
-			ref payload, ref signature
+			ref block_number, ref payload, ref signature
 		) = call {
 			let signature_valid = SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone());
 			if !signature_valid {
 				return InvalidTransaction::BadProof.into();
 			}
-			Self::validate_transaction_parameters(&payload.block_number, &payload.who, &signature)
+			Self::validate_transaction_parameters(&block_number, &payload.who, &signature)
 		} else {
 			InvalidTransaction::Call.into()
 		}
