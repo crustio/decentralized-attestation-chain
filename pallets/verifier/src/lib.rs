@@ -66,7 +66,7 @@ use sp_runtime::{
 	},
 };
 use codec::{Encode, Decode};
-use sp_std::{vec::Vec, vec};
+use sp_std::{vec::Vec, vec, str, num::ParseIntError};
 use lite_json::json::JsonValue;
 
 #[cfg(test)]
@@ -295,13 +295,15 @@ decl_module! {
 /// can sometimes be hard to debug.
 impl<T: Config> Module<T> {
 	/// A helper function to fetch the price, sign payload and send an unsigned transaction
-	fn resolve_evidence_and_send_unsigned_for_any_account(applier: T::AccountId, evidence: Vec<u8>, block_number: T::BlockNumber) -> Result<(), &'static str> {
+	fn resolve_evidence_and_send_unsigned_for_any_account(_applier: T::AccountId, evidence: Vec<u8>, block_number: T::BlockNumber) -> Result<(), &'static str> {
 		// Make an external HTTP request to fetch the current price.
 		// Note this call will block until response is received.
 		let message = Self::resolve_evidence(evidence).map_err(|_| "Resolve evidence failed")?;
-		let who = T::AccountId::decode(&mut(message[2].as_ref())).map_err(|_| "Resolve account failed")?;
-
-		ensure!(who == applier, "account id is not same");
+		let account_hex = match str::from_utf8(&message[2]) {
+			Ok(v) => v,
+			Err(_) => return Err("Invalid account id"),
+		};
+		let who = T::AccountId::decode(&mut(Self::decode_hex(account_hex).unwrap()).as_ref()).map_err(|_| "Resolve account id failed")?;
 
 		// -- Sign using any account
 		let (_, result) = Signer::<T, T::AuthorityId>::any_account().send_unsigned_transaction(
@@ -392,10 +394,12 @@ impl<T: Config> Module<T> {
 					.find(|(k, _)| k.iter().copied().eq("message".chars()))?;
 				match v {
 					JsonValue::Object(_) => {
+						log::info!("Got message object");
 						let pubkey_option = Self::parse_object(v.clone(), "pubkey");
 						let mrenclave_option = Self::parse_object(v.clone(), "mrenclave");
 						let account_option = Self::parse_object(v.clone(), "account");
 						if pubkey_option.is_some() && mrenclave_option.is_some() && account_option.is_some() {
+							log::info!("Got option success");
 							return Some(vec![pubkey_option.unwrap(), mrenclave_option.unwrap(), account_option.unwrap()])
 						}
 						return None;
@@ -414,6 +418,7 @@ impl<T: Config> Module<T> {
 					.find(|(k, _)| k.iter().copied().eq(keys.chars()))?;
 				match v {
 					JsonValue::String(s) => {
+						log::info!("Got {:?}: {:?}", keys, s.clone());
 						return Some(s.iter().map(|c| *c as u8).collect::<Vec<_>>());
 					},
 					_ => return None,
@@ -425,13 +430,9 @@ impl<T: Config> Module<T> {
 
 	fn validate_transaction_parameters(
 		block_number: &T::BlockNumber,
-		who: &T::AccountId,
+		_who: &T::AccountId,
 		sig: &T::Signature
 	) -> TransactionValidity {
-		// Now let's check if the transaction has any chance to succeed.
-		if !<WaitingQueue<T>>::contains_key(block_number, who) {
-			return InvalidTransaction::Stale.into();
-		}
 		// Let's make sure to reject transactions from the future.
 		let current_block = <system::Pallet<T>>::block_number();
 		if &current_block < block_number {
@@ -466,6 +467,13 @@ impl<T: Config> Module<T> {
 			// claim a reward.
 			.propagate(true)
 			.build()
+	}
+
+	pub fn decode_hex(s: &str) -> Result<Vec<u8>, ParseIntError> {
+		(0..s.len())
+			.step_by(2)
+			.map(|i| u8::from_str_radix(&s[i..i + 2], 16))
+			.collect()
 	}
 }
 
